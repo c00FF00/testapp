@@ -6,30 +6,28 @@ class UserIdentity extends CUserIdentity
 
     public function authenticate()
     {
-        $dbrec = Users::model()->findByAttributes(['username' => $this->username]);
-        if (!isset($dbrec->username)) {
+        $users = Users::model()->findByAttributes(['username' => $this->username]);
+
+        $this->dbid = $users->id;
+
+        if (!isset($this->username)) {
             $this->errorCode = self::ERROR_USERNAME_INVALID;
-        } elseif (!CPasswordHelper::verifyPassword($this->password, $dbrec->password)) {
+        } elseif ('Administrator' !== $this->getRole()) {
             $this->errorCode = self::ERROR_PASSWORD_INVALID;
-        } else {
-            $this->dbid = $dbrec->id;
-            $this->setState('username', $dbrec->username);
+        } elseif ($this->password == $users->password) {
             $this->errorCode = self::ERROR_NONE;
-            if ($role = $this->getRole()) {
-                $this->setState('role', $role);
-            }
+        } else {
+            $this->errorCode = self::ERROR_PASSWORD_INVALID;
         }
 
         return !$this->errorCode;
     }
 
-
-    public function getRole() {
-        return Roles::model()->findByAttributes(['role' => $this->getId()]);
-    }
-
-    public function getId()
+    public function getRole()
     {
-        return $this->dbid;
+        $res = Roles::model()->findByAttributes(['id' => $this->dbid]);
+        return $res->name;
     }
 }
+
+
